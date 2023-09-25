@@ -37,7 +37,6 @@ class FeedForwardBlock(nn.Module):
         return self.fc2(self.dropout(self.relu(self.fc1(x))))
 
 
-
 class PositionalEncoding(nn.Module):
     """
     Inject information about relative or absolute positions of tokens.
@@ -307,6 +306,7 @@ class SaintPlusTransformer(nn.Module):
         self.src_input_embedding = InputEmbedding(vocab_size=question_vocab_size, embed_size=embed_size)
         self.tgt_input_embedding = InputEmbedding(vocab_size=answer_corr_vocab_size, embed_size=embed_size)
         self.part_embedding = InputEmbedding(vocab_size=part_vocab_size, embed_size=embed_size)
+        self.fc = nn.Linear(2*embed_size, embed_size, bias=False)
         self.pos_encoding = PositionalEncoding(max_len=max_len, embed_size=embed_size, dropout=dropout)
         self.encoder = Encoder(embed_size=embed_size, dropout=dropout, heads=heads, hidden_size=hidden_size, N=N)
         self.decoder = Decoder(embed_size=embed_size, dropout=dropout, heads=heads, hidden_size=hidden_size, N=N)
@@ -331,7 +331,9 @@ class SaintPlusTransformer(nn.Module):
     ) -> torch.Tensor:
         x = src
         x = self.src_input_embedding(x=x)
-        x = x + self.part_embedding(x=part)
+        part = self.part_embedding(x=part)
+        x = torch.cat((x, part), axis=-1)
+        x = self.fc(x)
         x = self.pos_encoding(x=x)
         x = self.encoder(x=x, mask=src_mask)
         return x
