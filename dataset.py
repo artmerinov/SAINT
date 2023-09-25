@@ -8,7 +8,7 @@ def get_dataset(config):
 
     # load train data
     data = pd.read_csv(
-        filepath_or_buffer=config.DATASOURCE, 
+        filepath_or_buffer=config.PATH_TO_TRAIN, 
         usecols=[
             'user_id', 
             'content_id',
@@ -25,7 +25,7 @@ def get_dataset(config):
             'content_type_id': 'int8',
             'timestamp': 'int64',
         },
-        nrows=1e7,
+        nrows=None,
     )
 
     # remove lectures
@@ -34,7 +34,7 @@ def get_dataset(config):
 
     # add part
     questions = pd.read_csv(
-        filepath_or_buffer='data/questions.csv', 
+        filepath_or_buffer=config.PATH_TO_QUESTIONS, 
         usecols={
             'question_id',
             'part'

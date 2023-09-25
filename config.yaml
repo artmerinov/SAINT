@@ -1,4 +1,5 @@
-datasource: data/train_sample.csv
+path_to_train: data/train.csv
+path_to_questions: data/questions.csv
 
 tr_frac: 0.9 
 max_len: 100
