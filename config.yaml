@@ -1,9 +1,4 @@
 datasource: data/train_sample.csv
-tr_frac: 0.9
+tr_frac: 0.9 
 max_len: 100
 batch_size: 64
-
-# folder paths to save model artifacts
-model_folder_name: weights
-experiment_folder_name: runs
-tokenizer_folder_name: tokenizers
