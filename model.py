@@ -290,8 +290,9 @@ class Decoder(nn.Module):
 class SaintPlusTransformer(nn.Module):
     def __init__(
             self,
-            question_vocab_size: int,
-            answer_corr_vocab_size: int, # = 3 {True, False, Padding}
+            question_vocab_size: int, # = 13524 {0, 1, ..., 13523}
+            answer_corr_vocab_size: int, # = 3 {0, 1, 2}
+            part_vocab_size: int, # = 8 {0, 1, 2, ..., 7}
             embed_size: int, 
             max_len: int,
             hidden_size: int,
@@ -305,10 +306,11 @@ class SaintPlusTransformer(nn.Module):
         
         self.src_input_embedding = InputEmbedding(vocab_size=question_vocab_size, embed_size=embed_size)
         self.tgt_input_embedding = InputEmbedding(vocab_size=answer_corr_vocab_size, embed_size=embed_size)
+        self.part_embedding = InputEmbedding(vocab_size=part_vocab_size, embed_size=embed_size)
         self.pos_encoding = PositionalEncoding(max_len=max_len, embed_size=embed_size, dropout=dropout)
         self.encoder = Encoder(embed_size=embed_size, dropout=dropout, heads=heads, hidden_size=hidden_size, N=N)
         self.decoder = Decoder(embed_size=embed_size, dropout=dropout, heads=heads, hidden_size=hidden_size, N=N)
-        self.proj = nn.Linear(embed_size, answer_corr_vocab_size, bias=True) # 0, 1, 2
+        self.proj = nn.Linear(embed_size, answer_corr_vocab_size, bias=True)
 
         self.init_weights()
 
@@ -324,10 +326,12 @@ class SaintPlusTransformer(nn.Module):
     def encode(
             self, 
             src: torch.Tensor, 
-            src_mask: torch.Tensor
+            src_mask: torch.Tensor,
+            part: torch.Tensor,
     ) -> torch.Tensor:
         x = src
         x = self.src_input_embedding(x=x)
+        x = x + self.part_embedding(x=part)
         x = self.pos_encoding(x=x)
         x = self.encoder(x=x, mask=src_mask)
         return x
@@ -352,8 +356,8 @@ class SaintPlusTransformer(nn.Module):
             tgt: torch.Tensor, 
             src_mask: torch.Tensor, 
             tgt_mask: torch.Tensor,
-            
+            part: torch.Tensor,
     ) -> torch.Tensor:
-        enc_out = self.encode(src=src, src_mask=src_mask)
+        enc_out = self.encode(src=src, src_mask=src_mask, part=part)
         dec_out = self.decode(tgt=tgt, encoder_output=enc_out, src_mask=src_mask, tgt_mask=tgt_mask)
         return dec_out

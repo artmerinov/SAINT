@@ -1,4 +1,15 @@
 datasource: data/train_sample.csv
+
 tr_frac: 0.9 
 max_len: 100
-batch_size: 64
+batch_size: 64 # 128
+
+question_vocab_size: 13523
+answer_corr_vocab_size: 2
+part_vocab_size: 7
+
+embed_size: 128 # 512
+hidden_size: 512 # 2048
+dropout: 0.1
+heads: 8
+layers: 1 # 6
