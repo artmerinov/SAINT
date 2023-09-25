@@ -4,6 +4,6 @@ Transformer based knowledge tracing model on [Riiid Answer Correctness Predictio
 
 ## Reference
 
-https://arxiv.org/pdf/2002.07033.pdf -- Towards an Appropriate Query, Key, and Value Computation for Knowledge Tracing
-https://arxiv.org/abs/2010.12042 -- SAINT+: Integrating Temporal Features for EdNet Correctness Prediction
-https://arxiv.org/abs/1706.03762 -- Attention Is All You Need
+- [Attention Is All You Need](https://arxiv.org/abs/1706.03762)
+- [Towards an Appropriate Query, Key, and Value Computation for Knowledge Tracing](https://arxiv.org/pdf/2002.07033.pdf)
+- [SAINT+: Integrating Temporal Features for EdNet Correctness Prediction](https://arxiv.org/abs/2010.12042)
