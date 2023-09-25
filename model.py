@@ -289,9 +289,10 @@ class Decoder(nn.Module):
 class SaintPlusTransformer(nn.Module):
     def __init__(
             self,
-            question_vocab_size: int, # = 13524 {0, 1, ..., 13523}
-            answer_corr_vocab_size: int, # = 3 {0, 1, 2}
-            part_vocab_size: int, # = 8 {0, 1, 2, ..., 7}
+            question_vocab_size: int, # = 13523 + 1 {0, 1, ..., 13523}
+            answer_corr_vocab_size: int, # = 2 + 1 {0, 1, 2}
+            part_vocab_size: int, # = 7 + 1 {0, 1, 2, ..., 7}
+            time_lag_vocab_size: int, # = 1441 + 1 {0, 1, ..., 1441}
             embed_size: int, 
             max_len: int,
             hidden_size: int,
@@ -306,7 +307,9 @@ class SaintPlusTransformer(nn.Module):
         self.src_input_embedding = InputEmbedding(vocab_size=question_vocab_size, embed_size=embed_size)
         self.tgt_input_embedding = InputEmbedding(vocab_size=answer_corr_vocab_size, embed_size=embed_size)
         self.part_embedding = InputEmbedding(vocab_size=part_vocab_size, embed_size=embed_size)
-        self.fc = nn.Linear(2*embed_size, embed_size, bias=False)
+        self.time_lag_embedding = InputEmbedding(vocab_size=time_lag_vocab_size, embed_size=embed_size)
+        self.enc_fc = nn.Linear(2*embed_size, embed_size, bias=False)
+        self.dec_fc = nn.Linear(2*embed_size, embed_size, bias=False)
         self.pos_encoding = PositionalEncoding(max_len=max_len, embed_size=embed_size, dropout=dropout)
         self.encoder = Encoder(embed_size=embed_size, dropout=dropout, heads=heads, hidden_size=hidden_size, N=N)
         self.decoder = Decoder(embed_size=embed_size, dropout=dropout, heads=heads, hidden_size=hidden_size, N=N)
@@ -331,9 +334,9 @@ class SaintPlusTransformer(nn.Module):
     ) -> torch.Tensor:
         x = src
         x = self.src_input_embedding(x=x)
-        part = self.part_embedding(x=part)
-        x = torch.cat((x, part), axis=-1)
-        x = self.fc(x)
+        part_emb = self.part_embedding(x=part)
+        x = torch.cat((x, part_emb), axis=-1)
+        x = self.enc_fc(x)
         x = self.pos_encoding(x=x)
         x = self.encoder(x=x, mask=src_mask)
         return x
@@ -344,9 +347,13 @@ class SaintPlusTransformer(nn.Module):
             encoder_output: torch.Tensor, 
             src_mask: torch.Tensor, 
             tgt_mask: torch.Tensor,
+            time_lag: torch.Tensor,
     ) -> torch.Tensor:
         x = tgt
         x = self.tgt_input_embedding(x=x)
+        time_lag_emb = self.time_lag_embedding(x=time_lag)
+        x = torch.cat((x, time_lag_emb), axis=-1)
+        x = self.dec_fc(x)
         x = self.pos_encoding(x=x)
         x = self.decoder(x=x, encoder_output=encoder_output, src_mask=src_mask, tgt_mask=tgt_mask)
         x = self.proj(input=x)
@@ -359,7 +366,8 @@ class SaintPlusTransformer(nn.Module):
             src_mask: torch.Tensor, 
             tgt_mask: torch.Tensor,
             part: torch.Tensor,
+            time_lag: torch.Tensor,
     ) -> torch.Tensor:
         enc_out = self.encode(src=src, src_mask=src_mask, part=part)
-        dec_out = self.decode(tgt=tgt, encoder_output=enc_out, src_mask=src_mask, tgt_mask=tgt_mask)
+        dec_out = self.decode(tgt=tgt, encoder_output=enc_out, src_mask=src_mask, tgt_mask=tgt_mask, time_lag=time_lag)
         return dec_out

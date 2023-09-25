@@ -8,6 +8,7 @@ batch_size: 64 # 128
 question_vocab_size: 13523
 answer_corr_vocab_size: 2
 part_vocab_size: 7
+time_lag_vocab_size: 1441
 
 embed_size: 128 # 512
 hidden_size: 512 # 512

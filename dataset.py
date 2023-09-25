@@ -84,13 +84,20 @@ class RIIIDDataset(Dataset):
         ac = torch.zeros(size=(self.config.MAX_LEN,), dtype=torch.int32) # answered correctly (0, 1)
         ua = torch.zeros(size=(self.config.MAX_LEN,), dtype=torch.int32) # user answer (0, 1, 2, 3)
         ep = torch.zeros(size=(self.config.MAX_LEN,), dtype=torch.int32) # exercise part (1, 2, 3, 4, 5, 6, 7)
+        tl = torch.zeros(size=(self.config.MAX_LEN,), dtype=torch.int32) # time lag from previous activity
 
         # add 1 to some ids because we will add zero padding
         # we don't want to mix padding id "0" with potential id "0"
-        user_ex = 1 + torch.from_numpy(user_df['content_id'].values) # (0, 1, ..., 13523) --> (1, 2, ..., 13524) --> 
+        user_ex = 1 + torch.from_numpy(user_df['content_id'].values) # (0, 1, ..., 13523) --> (1, 2, ..., 13524)
         user_ac = 1 + torch.from_numpy(user_df['answered_correctly'].values) # (0, 1) --> (1, 2)
         user_ua = 1 + torch.from_numpy(user_df['user_answer'].values) # (0, 1, 2, 3) --> (1, 2, 3, 4)
-        user_ep = 0 + torch.from_numpy(user_df['part'].values) # no need to shift
+        # since exercise part is from 1, we dont need to add 1
+        user_ep = torch.from_numpy(user_df['part'].values)
+        # craete category from time lag
+        # it will be from 0 to 1440 minutes (1 day) --> 1441 values
+        # and shift it by 1 due to zero padding --> (1441 + 1) values
+        user_tl = torch.from_numpy((user_df['timestamp'] - user_df['timestamp'].shift()).fillna(0).values // 1_000 // 60)
+        user_tl = 1 + torch.clip(input=user_tl, min=0, max=1440) # (0, 1, ..., 1440) --> (1, 2, ..., 1441)
 
         if seq_len < self.config.MAX_LEN:
 
@@ -99,6 +106,7 @@ class RIIIDDataset(Dataset):
             ac[-seq_len:] = user_ac
             ua[-seq_len:] = user_ua
             ep[-seq_len:] = user_ep
+            tl[-seq_len:] = user_tl
 
         elif seq_len > self.config.MAX_LEN:
 
@@ -110,6 +118,7 @@ class RIIIDDataset(Dataset):
             ac[:] = user_ac[st:en]
             ua[:] = user_ua[st:en]
             ep[:] = user_ep[st:en]
+            tl[:] = user_tl[st:en]
 
         else:
 
@@ -117,11 +126,13 @@ class RIIIDDataset(Dataset):
             ac[:] = user_ac
             ua[:] = user_ua
             ep[:] = user_ep
+            tl[:] = user_tl
             
         assert ex.size(0) == self.config.MAX_LEN
         assert ac.size(0) == self.config.MAX_LEN
         assert ua.size(0) == self.config.MAX_LEN
         assert ep.size(0) == self.config.MAX_LEN
+        assert tl.size(0) == self.config.MAX_LEN
 
         src_mask = (ex[1:] != 0).int().unsqueeze(0).unsqueeze(0)
         
@@ -136,6 +147,7 @@ class RIIIDDataset(Dataset):
             # decoder input (history)
             'ac': ac[:-1],
             'ua': ua[:-1],
+            'tl': tl[:-1],
 
             # label
             'label': ac[1:],
