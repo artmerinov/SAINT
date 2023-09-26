@@ -1,6 +1,6 @@
 # SAINT+ model
 
-Transformer based knowledge tracing model on [Riiid Answer Correctness Prediction](https://www.kaggle.com/competitions/riiid-test-answer-prediction/overview) Kaggle Competition.
+Transformer-based Knowledge Tracing model for the [Riiid Answer Correctness Prediction](https://www.kaggle.com/competitions/riiid-test-answer-prediction/overview) Kaggle Competition.
 
 ## Reference
 
