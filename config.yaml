@@ -1,5 +1,6 @@
 path_to_train: data/train.csv
 path_to_questions: data/questions.csv
+path_to_model_weights: weights
 
 tr_frac: 0.8
 max_len: 100

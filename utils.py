@@ -1,11 +1,7 @@
+import os
 import yaml
 import torch
 import numpy as np
-
-
-def set_random_seed(seed: int):
-    np.random.seed(seed)
-    torch.manual_seed(seed)
 
 
 class Config:
@@ -14,3 +10,20 @@ class Config:
             config_dict = yaml.safe_load(f)
         for key, value in config_dict.items():
             setattr(self, key.upper(), value)
+
+
+def set_random_seed(seed: int):
+    """
+    Fixes random state for reproducibility. 
+    """
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+
+def get_last_checkpoint_path(config):
+    """
+    Loads last model weights.
+    """
+    weights_files = os.listdir(config.PATH_TO_MODEL_WEIGHTS)
+    weights_files.sort()
+    return os.path.join(config.PATH_TO_MODEL_WEIGHTS, str(weights_files[-1]))
