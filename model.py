@@ -112,7 +112,7 @@ class MultiHeadAttentionBlock(nn.Module):
         # (batch_size, heads, max_len, head_dim) @
         # (batch_size, heads, head_dim, max_len) -->
         # (batch_size, heads, max_len, max_len)
-        attention_scores = (q_new @ k_new.transpose(-2, -1)) / math.sqrt(self.head_dim)
+        self.attention_scores = (q_new @ k_new.transpose(-2, -1)) / math.sqrt(self.head_dim)
 
         if mask is not None:
             # replace all values where mask == 0 with very large negative number -1e9
@@ -120,18 +120,18 @@ class MultiHeadAttentionBlock(nn.Module):
             # we do not want words to watch future words
             # or padding values to interact with other values
             # (we need padding to make sentence to reach the max_len sequence length)
-            attention_scores.masked_fill_(mask == 0, -1e9)
+            self.attention_scores.masked_fill_(mask == 0, -1e9)
 
         # apply softmax function
         # to normalise attention scores for each token in a row
-        attention_scores = F.softmax(attention_scores, dim=-1)
-        attention_scores = self.dropout(attention_scores)
+        self.attention_scores = F.softmax(self.attention_scores, dim=-1)
+        self.attention_scores = self.dropout(self.attention_scores)
 
         # calculate heads matrix
         # (batch_size, heads, max_len, max_len) @
         # (batch_size, heads, max_len, head_dim) -->
         # (batch_size, heads, max_len, head_dim)
-        x = attention_scores @ v_new
+        x = self.attention_scores @ v_new
 
         # combine all the heads together
         # (batch_size, heads, max_len, head_dim) -->
@@ -228,7 +228,12 @@ class DecoderBlock(nn.Module):
     """
     def __init__(self, embed_size: int, heads: int, hidden_size: int, dropout: float) -> None:
         super().__init__()
-        self.attention_block = MultiHeadAttentionBlock(
+        self.self_attention_block = MultiHeadAttentionBlock(
+            embed_size=embed_size,
+            heads=heads,
+            dropout=dropout
+        )
+        self.cross_attention_block = MultiHeadAttentionBlock(
             embed_size=embed_size,
             heads=heads,
             dropout=dropout
@@ -250,11 +255,11 @@ class DecoderBlock(nn.Module):
     ) -> torch.Tensor:
 
         x_norm1 = self.norm(x)
-        self_att = self.attention_block(q=x_norm1, k=x_norm1, v=x_norm1, mask=tgt_mask)
+        self_att = self.self_attention_block(q=x_norm1, k=x_norm1, v=x_norm1, mask=tgt_mask)
         x = x + self.dropout(self_att)
 
         x_norm2 = self.norm(x)
-        cross_att = self.attention_block(q=x_norm2, k=encoder_output, v=encoder_output, mask=src_mask)
+        cross_att = self.cross_attention_block(q=x_norm2, k=encoder_output, v=encoder_output, mask=src_mask)
         x = x + self.dropout(cross_att)
     
         x_norm3 = self.norm(x)
