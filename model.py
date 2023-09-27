@@ -76,11 +76,6 @@ class SinusoidalPositionalEmbedding(nn.Module):
         return x
     
 
-class RotaryPositionalEmbeddings(nn.Module):
-    def __init__(self, ) -> None:
-        super().__init__()
-
-
 class MultiHeadAttentionBlock(nn.Module):
     """
     Multi-head attention.
