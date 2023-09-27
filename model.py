@@ -183,17 +183,18 @@ class EncoderBlock(nn.Module):
             hidden_size=hidden_size, 
             dropout=dropout
         )
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout1 = nn.Dropout(p=dropout)
+        self.dropout2 = nn.Dropout(p=dropout)
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         
         x_norm1 = self.norm1(x)
         self_att = self.self_attention_block(q=x_norm1, k=x_norm1, v=x_norm1, mask=mask)
-        x = x + self.dropout(self_att)
+        x = x + self.dropout1(self_att)
 
         x_norm2 = self.norm2(x)
         ff = self.feed_forward_block(x=x_norm2)
-        x = x + self.dropout(ff)
+        x = x + self.dropout2(ff)
         
         return x
 
@@ -248,7 +249,9 @@ class DecoderBlock(nn.Module):
             hidden_size=hidden_size, 
             dropout=dropout
         )
-        self.dropout = nn.Dropout(p=dropout)
+        self.dropout1 = nn.Dropout(p=dropout)
+        self.dropout2 = nn.Dropout(p=dropout)
+        self.dropout3 = nn.Dropout(p=dropout)
 
     def forward(
             self, 
@@ -260,15 +263,15 @@ class DecoderBlock(nn.Module):
 
         x_norm1 = self.norm1(x)
         self_att = self.self_attention_block(q=x_norm1, k=x_norm1, v=x_norm1, mask=tgt_mask)
-        x = x + self.dropout(self_att)
+        x = x + self.dropout1(self_att)
 
         x_norm2 = self.norm2(x)
         cross_att = self.cross_attention_block(q=x_norm2, k=encoder_output, v=encoder_output, mask=src_mask)
-        x = x + self.dropout(cross_att)
+        x = x + self.dropout2(cross_att)
     
         x_norm3 = self.norm3(x)
         ff = self.feed_forward_block(x=x_norm3)
-        x = x + self.dropout(ff)
+        x = x + self.dropout3(ff)
 
         return x
     
