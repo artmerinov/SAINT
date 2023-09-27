@@ -38,9 +38,9 @@ class FeedForwardBlock(nn.Module):
         return self.fc2(self.dropout(self.relu(self.fc1(x))))
 
 
-class PositionalEncoding(nn.Module):
+class SinusoidalPositionalEmbedding(nn.Module):
     """
-    Inject information about relative or absolute positions of tokens.
+    Inject information about positions of tokens.
     """
     def __init__(self, embed_size: int, max_len: int, dropout: float) -> None:
         super().__init__()
@@ -75,6 +75,11 @@ class PositionalEncoding(nn.Module):
         x = self.dropout(x)
         return x
     
+
+class RotaryPositionalEmbeddings(nn.Module):
+    def __init__(self, ) -> None:
+        super().__init__()
+
 
 class MultiHeadAttentionBlock(nn.Module):
     """
@@ -322,7 +327,7 @@ class SaintPlusTransformer(nn.Module):
         self.time_lag_embedding = InputEmbedding(vocab_size=time_lag_vocab_size, embed_size=embed_size)
         self.enc_fc = nn.Linear(2*embed_size, embed_size, bias=False)
         self.dec_fc = nn.Linear(2*embed_size, embed_size, bias=False)
-        self.pos_encoding = PositionalEncoding(max_len=max_len, embed_size=embed_size, dropout=dropout)
+        self.pos_encoding = SinusoidalPositionalEmbedding(max_len=max_len, embed_size=embed_size, dropout=dropout)
         self.encoder = Encoder(embed_size=embed_size, dropout=dropout, heads=heads, hidden_size=hidden_size, N=N)
         self.decoder = Decoder(embed_size=embed_size, dropout=dropout, heads=heads, hidden_size=hidden_size, N=N)
         self.proj = nn.Linear(embed_size, answer_corr_vocab_size, bias=True)
