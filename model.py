@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import math
+import copy
 
 
 class InputEmbedding(nn.Module):
@@ -175,7 +176,8 @@ class EncoderBlock(nn.Module):
             heads=heads,
             dropout=dropout
         )
-        self.norm = LayerNormalisation(embed_size=embed_size)
+        self.norm1 = LayerNormalisation(embed_size=embed_size)
+        self.norm2 = LayerNormalisation(embed_size=embed_size)
         self.feed_forward_block = FeedForwardBlock(
             embed_size=embed_size, 
             hidden_size=hidden_size, 
@@ -185,11 +187,11 @@ class EncoderBlock(nn.Module):
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         
-        x_norm1 = self.norm(x)
+        x_norm1 = self.norm1(x)
         self_att = self.self_attention_block(q=x_norm1, k=x_norm1, v=x_norm1, mask=mask)
         x = x + self.dropout(self_att)
 
-        x_norm2 = self.norm(x)
+        x_norm2 = self.norm2(x)
         ff = self.feed_forward_block(x=x_norm2)
         x = x + self.dropout(ff)
         
@@ -212,7 +214,7 @@ class Encoder(nn.Module):
             hidden_size=hidden_size,
             dropout=dropout
         )
-        self.layers = nn.ModuleList(modules=[self.encoder_block for _ in range(N)])
+        self.layers = nn.ModuleList(modules=[copy.deepcopy(self.encoder_block) for _ in range(N)])
         self.norm = LayerNormalisation(embed_size=embed_size)
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
@@ -238,7 +240,9 @@ class DecoderBlock(nn.Module):
             heads=heads,
             dropout=dropout
         )
-        self.norm = LayerNormalisation(embed_size=embed_size)
+        self.norm1 = LayerNormalisation(embed_size=embed_size)
+        self.norm2 = LayerNormalisation(embed_size=embed_size)
+        self.norm3 = LayerNormalisation(embed_size=embed_size)
         self.feed_forward_block = FeedForwardBlock(
             embed_size=embed_size, 
             hidden_size=hidden_size, 
@@ -254,15 +258,15 @@ class DecoderBlock(nn.Module):
             tgt_mask: torch.Tensor
     ) -> torch.Tensor:
 
-        x_norm1 = self.norm(x)
+        x_norm1 = self.norm1(x)
         self_att = self.self_attention_block(q=x_norm1, k=x_norm1, v=x_norm1, mask=tgt_mask)
         x = x + self.dropout(self_att)
 
-        x_norm2 = self.norm(x)
+        x_norm2 = self.norm2(x)
         cross_att = self.cross_attention_block(q=x_norm2, k=encoder_output, v=encoder_output, mask=src_mask)
         x = x + self.dropout(cross_att)
     
-        x_norm3 = self.norm(x)
+        x_norm3 = self.norm3(x)
         ff = self.feed_forward_block(x=x_norm3)
         x = x + self.dropout(ff)
 
@@ -281,7 +285,7 @@ class Decoder(nn.Module):
             hidden_size=hidden_size,
             dropout=dropout
         )
-        self.layers = nn.ModuleList(modules=[self.decoder_block for _ in range(N)])
+        self.layers = nn.ModuleList(modules=[copy.deepcopy(self.decoder_block) for _ in range(N)])
         self.norm = LayerNormalisation(embed_size=embed_size)
 
     def forward(self, x: torch.Tensor, encoder_output: torch.Tensor, src_mask: torch.Tensor, tgt_mask: torch.Tensor) -> torch.Tensor:

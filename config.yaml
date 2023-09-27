@@ -15,4 +15,4 @@ embed_size: 128 # 512
 hidden_size: 512 # 512
 dropout: 0.1
 heads: 8
-layers: 1 # 2
+layers: 2
